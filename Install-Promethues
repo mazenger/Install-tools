@@ -1,0 +1,115 @@
+#!/bin/bash
+
+# Update and upgrade system packages
+sudo apt update && sudo apt upgrade -y
+
+# Create a Prometheus user (Optional, recommended for security)
+sudo useradd --no-create-home --shell /bin/false prometheus
+
+# Download and extract Prometheus
+cd /tmp
+wget https://github.com/prometheus/prometheus/releases/download/v<version>/prometheus-<version>.linux-amd64.tar.gz
+tar -xvf prometheus-<version>.linux-amd64.tar.gz
+
+# Move Prometheus binaries and configuration files (Optional)
+if [ "$(id -u)" != "0" ]; then
+  # Not root, so move to dedicated user directory
+  sudo mv prometheus-<version>/prometheus prometheus-<version>/promtool /home/prometheus/
+  sudo mv prometheus-<version>/rules/*.yml /etc/prometheus/
+  sudo chown -R prometheus:prometheus /home/prometheus/ /etc/prometheus/
+fi
+
+# Move Prometheus binaries otherwise (not recommended for long-term use)
+mv prometheus-<version>/prometheus prometheus-<version>/promtool /usr/local/bin/
+
+# Create Prometheus systemd service
+sudo vi /etc/systemd/system/prometheus.service
+
+# Paste the following content into vi and save (press `:wq` to save and quit)
+<<EOF
+[Unit]
+Description=Prometheus
+After=network.target
+
+[Service]
+User=prometheus  # Adjust if you didn't create a Prometheus user
+Group=prometheus
+Type=simple
+WorkingDirectory=/home/prometheus/prometheus-<version>  # Adjust path if needed
+ExecStart=/home/prometheus/prometheus-<version>/prometheus --config.file /etc/prometheus/prometheus.yml
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload systemd and start/enable Prometheus service
+sudo systemctl daemon-reload
+sudo systemctl start prometheus
+sudo systemctl enable prometheus
+
+# Install Node Exporter
+cd /tmp
+wget https://github.com/prometheus/node_exporter/releases/download/v<version>/node_exporter-<version>.linux-amd64.tar.gz
+tar -xvf node_exporter-<version>.linux-amd64.tar.gz
+sudo mv node_exporter-<version>/node_exporter /usr/local/bin/
+
+# Create Node Exporter systemd service
+sudo vi /etc/systemd/system/node_exporter.service
+
+# Paste the following content into vi and save (press `:wq` to save and quit)
+<<EOF
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=prometheus  # Assuming you created a Prometheus user earlier
+Group=prometheus
+Type=simple
+WorkingDirectory=/usr/local/bin/
+ExecStart=/usr/local/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload systemd and start/enable Node Exporter service
+sudo systemctl daemon-reload
+sudo systemctl start node_exporter
+sudo systemctl enable node_exporter
+
+# Install Alertmanager
+cd /tmp
+wget https://github.com/prometheus/alertmanager/releases/download/v<version>/alertmanager-<version>.linux-amd64.tar.gz
+tar -xvf alertmanager-<version>.linux-amd64.tar.gz
+sudo mv alertmanager-<version>/alertmanager /usr/local/bin/
+
+# Create Alertmanager systemd service
+sudo vi /etc/systemd/system/alertmanager.service
+
+# Paste the following content into vi and save (press `:wq` to save and quit)
+<<EOF
+[Unit]
+Description=Alertmanager
+After=network.target
+
+[Service]
+User=prometheus  # Assuming you created a Prometheus user earlier
+Group=prometheus
+Type=simple
+WorkingDirectory=/usr/local/bin/
+ExecStart=/usr/local/bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload systemd and start/enable Alertmanager service
+sudo systemctl daemon-reload
+sudo systemctl start alertmanager
+sudo systemctl enable alertmanager
+
+
+# Replace <version> with the actual version number you downloaded for each tool.
+# This script creates a Prometheus user by default. If you don't want to create a user, adjust the service files and ownership accordingly (refer to comments in the script).
+# Remember to configure Prometheus (`prometheus.yml
