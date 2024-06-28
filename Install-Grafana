@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Update and upgrade system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install Grafana Dependencies
+sudo apt update && sudo apt install -y apt-transport-https software-properties-common wget
+
+# Add Grafana Repository
+wget -q -O - https://packages.grafana.com/gpgkey | sudo apt-key add -
+echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://packages.grafana.com/agent/focal focal main" | sudo tee /etc/apt/sources.list.d/grafana.list
+
+# Update Package Lists and Install Grafana
+sudo apt update && sudo apt install grafana
+
+# Start and Enable Grafana Service
+sudo systemctl daemon-reload
+sudo systemctl start grafana
+sudo systemctl enable grafana
+
+
++ Access Grafana Web Interface:
+
+Open your web browser and navigate to http://localhost:3000 (or the IP address of your machine if running remotely).
+
++ Integrate Grafana with Prometheus:
+
+In the Grafana web interface, click on the "Configuration" icon (cogwheel) in the sidebar and select "Data Sources".
+Click "Add data source" and choose "Prometheus" as the type.
+Enter a name for the data source (e.g., "Prometheus").
+In the "URL" field, enter the URL of your Prometheus server. The default URL is http://localhost:9090 if you followed the previous instructions.
+Click "Save & Test" to save the configuration and test the connection. If successful, you should see a message indicating a successful connection.
+
++ Create a Grafana Dashboard:
+
+Click the "+" icon in the top navigation bar and select "Dashboard".
+Give your dashboard a name and click "Create".
+You can now add panels to your dashboard to visualize Prometheus metrics.
+In the panel edit view, select your Prometheus data source and enter the desired PromQL query to fetch the metrics you want to visualize.
+Additional Resources:
+
+Grafana documentation: https://grafana.com/docs/grafana/latest/
+Prometheus and Grafana Integration: https://prometheus.io/docs/visualization/grafana/
+Remember:
+
+You might need to adjust the URLs and paths depending on your specific setup (e.g., if you installed Prometheus in a non-default location).
+Explore the Grafana documentation for detailed information on creating dashboards and using PromQL for querying metrics.
+
+----
+Importing Grafana Dashboard by URL or ID:
+
+Within Grafana, navigate to the "Home" or "Dashboards" page.
+
+Click the "New" button and select "Import".
+
+You'll see three options:
+
+Upload a JSON file: This is for importing dashboards you've downloaded as JSON files.
+From Grafana.com: If the dashboard is publicly available on Grafana.com, you can enter its URL or ID here.
+Enter dashboard JSON: You can paste the raw JSON code of the dashboard directly into this field.
+Choose the "From Grafana.com" option.
+
+In the field provided, paste the URL of the dashboard you want to import. Alternatively, if you know the dashboard ID on Grafana.com, you can enter that instead of the URL.
+
