@@ -1,0 +1,35 @@
+npm install prom-client
+/// add this code in the server.js file //
+const promClient = require('prom-client');
+
+// Create a Histogram to measure request durations
+const httpRequestDurationMicroseconds = new promClient.Histogram({
+  name: 'http_request_duration_ms',
+  help: 'Duration of HTTP requests in ms',
+  labelNames: ['method', 'route', 'code'],
+  buckets: [0.1, 0.5, 1, 2.5, 5, 10] // Define your buckets here
+});
+
+// Collect default metrics
+promClient.collectDefaultMetrics({ timeout: 5000 });
+
+// Middleware to measure request durations
+app.use((req, res, next) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  res.on('finish', () => {
+    end({ method: req.method, route: req.route?.path || req.url, code: res.statusCode });
+  });
+  next();
+});
+
+// Expose metrics endpoint
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', promClient.register.contentType);
+    const metrics = await promClient.register.metrics();
+    res.end(metrics);
+  } catch (ex) {
+    res.status(500).end(ex.message);
+  }
+});
+///
